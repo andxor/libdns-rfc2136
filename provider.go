@@ -10,10 +10,11 @@ import (
 )
 
 type Provider struct {
-	KeyName string `json:"key_name,omitempty"`
-	KeyAlg  string `json:"key_alg,omitempty"`
-	Key     string `json:"key,omitempty"`
-	Server  string `json:"server,omitempty"`
+	KeyName        string `json:"key_name,omitempty"`
+	KeyAlg         string `json:"key_alg,omitempty"`
+	Key            string `json:"key,omitempty"`
+	Server         string `json:"server,omitempty"`
+	OverrideDomain string `json:"override_domain,omitempty"`
 }
 
 func (p *Provider) keyNameFQDN() string {
@@ -51,8 +52,15 @@ func (p *Provider) exchange(ctx context.Context, msg *dns.Msg) error {
 	return err
 }
 
+func (p *Provider) getZone(zone string) string {
+	if p.OverrideDomain != "" {
+		zone = p.OverrideDomain
+	}
+	return dns.Fqdn(zone)
+}
+
 func (p *Provider) GetRecords(ctx context.Context, zone string) ([]libdns.Record, error) {
-	zone = dns.Fqdn(zone)
+	zone = p.getZone(zone)
 
 	conn, err := p.client().DialContext(ctx, p.Server)
 	if err != nil {
@@ -92,7 +100,7 @@ func (p *Provider) GetRecords(ctx context.Context, zone string) ([]libdns.Record
 }
 
 func (p *Provider) SetRecords(ctx context.Context, zone string, records []libdns.Record) ([]libdns.Record, error) {
-	zone = dns.Fqdn(zone)
+	zone = p.getZone(zone)
 
 	msg := dns.Msg{}
 	msg.SetUpdate(zone)
@@ -117,7 +125,7 @@ func (p *Provider) SetRecords(ctx context.Context, zone string, records []libdns
 }
 
 func (p *Provider) AppendRecords(ctx context.Context, zone string, records []libdns.Record) ([]libdns.Record, error) {
-	zone = dns.Fqdn(zone)
+	zone = p.getZone(zone)
 
 	msg := dns.Msg{}
 	msg.SetUpdate(zone)
@@ -136,7 +144,7 @@ func (p *Provider) AppendRecords(ctx context.Context, zone string, records []lib
 }
 
 func (p *Provider) DeleteRecords(ctx context.Context, zone string, records []libdns.Record) ([]libdns.Record, error) {
-	zone = dns.Fqdn(zone)
+	zone = p.getZone(zone)
 
 	msg := dns.Msg{}
 	msg.SetUpdate(zone)
